@@ -193,4 +193,6 @@ Leave these to core `xbox` or skip them:
 
 ## License and source
 
+MIT. See [LICENSE](LICENSE).
+
 Repository: [StefanScanteie/xbox-tv-homeassistant](https://github.com/StefanScanteie/xbox-tv-homeassistant)

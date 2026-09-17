@@ -43,3 +43,9 @@ def test_manifest_has_hacs_required_keys() -> None:
 
 def test_brand_icon_exists_for_hacs() -> None:
     assert BRAND_ICON.is_file()
+
+
+def test_osi_approved_license_file_exists() -> None:
+    text = (ROOT / "LICENSE").read_text()
+    assert "MIT License" in text
+    assert "Copyright (c) 2026 Stefan Scanteie" in text

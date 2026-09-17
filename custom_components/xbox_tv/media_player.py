@@ -132,7 +132,7 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
                 self.hass,
                 DOMAIN,
                 "microsoft_sign_in",
-                is_fixable=True,
+                is_fixable=False,
                 severity=IssueSeverity.WARNING,
                 translation_key="microsoft_sign_in",
             )

@@ -6,6 +6,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 
 from .const import (
     CONF_CLIENT_ID,
@@ -146,6 +147,10 @@ if HAS_HA:
 
         async def _async_update_data(self) -> XboxTvState:
             """Fetch the latest state."""
+            tokens_before: dict[str, Any] | None = None
+            if self._webapi is not None:
+                tokens_before = dict(self._webapi.tokens)
+
             now = time.monotonic()
             if self._webapi is not None and (
                 not self._titles_cache
@@ -166,8 +171,20 @@ if HAS_HA:
             else:
                 webapi_for_fetch = None
 
-            return await async_fetch_state(
+            state = await async_fetch_state(
                 self._smartglass,
                 webapi_for_fetch,
                 self._titles_cache,
             )
+
+            if (
+                self._webapi is not None
+                and tokens_before is not None
+                and self._webapi.tokens != tokens_before
+            ):
+                self.hass.config_entries.async_update_entry(
+                    self._entry,
+                    data={**self._entry.data, CONF_TOKENS: self._webapi.tokens},
+                )
+
+            return state

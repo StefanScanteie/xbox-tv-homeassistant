@@ -78,15 +78,22 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: str | None = None
     ) -> ConfigFlowResult:
         """Choose Microsoft sign-in or skip."""
-        if user_input is not None:
-            if user_input == "sign_in":
-                return await self.async_step_oauth()
-            return self._async_create_or_update_entry()
-
         return self.async_show_menu(
             step_id="auth_choice",
             menu_options=["sign_in", "skip"],
         )
+
+    async def async_step_sign_in(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle sign-in menu selection."""
+        return await self.async_step_oauth()
+
+    async def async_step_skip(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle skip menu selection."""
+        return self._async_create_or_update_entry()
 
     async def async_step_oauth(
         self, user_input: dict[str, Any] | None = None
@@ -174,11 +181,6 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: str | None = None
     ) -> ConfigFlowResult:
         """Optionally refresh Microsoft tokens during reconfigure."""
-        if user_input is not None:
-            if user_input == "sign_in":
-                return await self.async_step_oauth()
-            return self._async_create_or_update_entry()
-
         return self.async_show_menu(
             step_id="reconfigure_auth",
             menu_options=["sign_in", "skip"],

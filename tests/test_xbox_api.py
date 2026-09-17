@@ -5,8 +5,15 @@ import time
 
 import pytest
 
-from xbox_tv.const import DASHBOARD_AUMID, DASHBOARD_SOURCE, MAX_SOURCES
+from xbox_tv.const import (
+    DASHBOARD_AUMID,
+    DASHBOARD_SOURCE,
+    MAX_SOURCES,
+    OAUTH_TOKEN_URL,
+)
 from xbox_tv.xbox_api import (
+    XBOX_USER_AUTH_URL,
+    XBOX_XSTS_AUTH_URL,
     Title,
     XboxWebApiClient,
     build_source_list,
@@ -315,6 +322,54 @@ async def test_async_launch_command_body() -> None:
     assert body["type"] == "Shell"
     assert body["command"] == "Activate"
     assert body["parameters"] == [{"oneStoreProductId": "9WZDNCRFJ3TJ"}]
+
+
+@pytest.mark.asyncio
+async def test_async_ensure_token_refreshes_expired_tokens() -> None:
+    expired_tokens = {
+        "access_token": "old_access",
+        "refresh_token": "refresh",
+        "expires_at": 0.0,
+        "userhash": "old_userhash",
+        "xsts_token": "old_xsts",
+        "xsts_expires_at": 0.0,
+    }
+    session = FakeSession(
+        {
+            ("POST", OAUTH_TOKEN_URL): FakeResponse(
+                200,
+                {
+                    "access_token": "new_access",
+                    "refresh_token": "new_refresh",
+                    "expires_in": 3600,
+                },
+            ),
+            ("POST", XBOX_USER_AUTH_URL): FakeResponse(
+                200,
+                {
+                    "Token": "user_jwt",
+                    "DisplayClaims": {"xui": [{"uhs": "new_userhash"}]},
+                },
+            ),
+            ("POST", XBOX_XSTS_AUTH_URL): FakeResponse(
+                200,
+                {"Token": "new_xsts"},
+            ),
+        }
+    )
+    client = XboxWebApiClient(session, expired_tokens, LIVE_ID)
+    auth = await client.async_ensure_token()
+
+    assert auth == "XBL3.0 x=new_userhash;new_xsts"
+    assert client.tokens["access_token"] == "new_access"
+    assert client.tokens["refresh_token"] == "new_refresh"
+    assert client.tokens["userhash"] == "new_userhash"
+    assert client.tokens["xsts_token"] == "new_xsts"
+    assert client.tokens["expires_at"] > time.time()
+    assert client.tokens["xsts_expires_at"] > time.time()
+    refresh_calls = [call for call in session.calls if call[0] == "POST" and call[1].startswith(OAUTH_TOKEN_URL)]
+    assert len(refresh_calls) == 1
+    assert refresh_calls[0][2]["data"]["grant_type"] == "refresh_token"
 
 
 @pytest.mark.asyncio

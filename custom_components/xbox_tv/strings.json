@@ -57,7 +57,8 @@
       "invalid_code": "Could not read an authorization code from that URL. Paste the full redirect URL."
     },
     "abort": {
-      "already_configured": "This Xbox is already configured."
+      "already_configured": "This Xbox is already configured.",
+      "reconfigure_successful": "Xbox TV was reconfigured successfully."
     },
     "create_entry": {
       "default": "Xbox TV is ready.\n\n**Apple Home / HomeKit:** Do not add this media player to your existing HomeKit Bridge. Apple will not show a Television on a mixed bridge.\n\nAdd a **separate** HomeKit integration entry in **accessory** mode that includes **only** this Xbox media player, then pair it in Apple Home as a new Television accessory."

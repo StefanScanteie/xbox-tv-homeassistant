@@ -6,7 +6,7 @@ import asyncio
 import struct
 from typing import Protocol
 
-from xbox_tv.const import POLL_TIMEOUT, SMARTGLASS_PORT
+from .const import POLL_TIMEOUT, SMARTGLASS_PORT
 
 _BROADCAST_HOSTS = frozenset({"255.255.255.255", "239.255.255.250"})
 
@@ -85,6 +85,7 @@ class AsyncioUdpTransport:
             transport, protocol = await loop.create_datagram_endpoint(
                 _DatagramProtocol,
                 local_addr=("0.0.0.0", 0),
+                allow_broadcast=True,
             )
             self._transport = transport  # type: ignore[assignment]
             self._protocol = protocol

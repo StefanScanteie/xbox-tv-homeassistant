@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Xbox TV",
+        "description": "Enter your Xbox console details. The console can be off during setup.\n\nConsole prerequisites:\n- Instant-on power mode (Settings → General → Power mode & startup)\n- Allow connections from any device (Settings → Devices & connections → Remote features → Xbox app preferences)",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "live_id": "Xbox network device ID"
+        },
+        "data_description": {
+          "name": "Friendly name for this Xbox in Home Assistant",
+          "host": "IP address or hostname of the Xbox on your LAN",
+          "live_id": "Found in Settings → System → Console info → Xbox network device ID"
+        }
+      },
+      "auth_choice": {
+        "title": "Microsoft account",
+        "description": "Sign in with Microsoft to list installed apps and games and switch sources. You can skip and add sign-in later.",
+        "menu_options": {
+          "sign_in": "Sign in with Microsoft",
+          "skip": "Skip for now"
+        }
+      },
+      "oauth": {
+        "title": "Microsoft sign-in",
+        "description": "Open this URL in a browser, sign in, and paste the full redirect URL below:\n\n{authorize_url}",
+        "data": {
+          "redirect_url": "Redirect URL"
+        },
+        "data_description": {
+          "redirect_url": "The full URL from your browser after signing in (starts with http://localhost/auth/callback)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Xbox TV",
+        "description": "Update console connection details.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "live_id": "Xbox network device ID"
+        }
+      },
+      "reconfigure_auth": {
+        "title": "Microsoft account",
+        "description": "Optionally sign in again to refresh your Microsoft tokens.",
+        "menu_options": {
+          "sign_in": "Sign in with Microsoft",
+          "skip": "Keep current tokens"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Enter a valid IP address or hostname.",
+      "invalid_live_id": "Enter a valid Xbox network device ID (8–32 hex characters).",
+      "invalid_code": "Could not read an authorization code from that URL. Paste the full redirect URL."
+    },
+    "abort": {
+      "already_configured": "This Xbox is already configured."
+    },
+    "create_entry": {
+      "default": "Xbox TV is ready.\n\n**Apple Home / HomeKit:** Do not add this media player to your existing HomeKit Bridge. Apple will not show a Television on a mixed bridge.\n\nAdd a **separate** HomeKit integration entry in **accessory** mode that includes **only** this Xbox media player, then pair it in Apple Home as a new Television accessory."
+    }
+  },
+  "issues": {
+    "microsoft_sign_in": {
+      "title": "Sign in with Microsoft",
+      "description": "Sign in with Microsoft to switch apps and games. Power on/off still works without sign-in."
+    }
+  }
+}

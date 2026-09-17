@@ -92,8 +92,14 @@ def build_source_list(
             if title.aumid == current_aumid:
                 current_friendly = title.name
                 break
-    if current_friendly is None:
-        current_friendly = current_name or current_aumid
+        if current_friendly is None:
+            resolved = friendly_source(unique_titles, current_aumid)
+            if resolved == current_aumid and current_name:
+                current_friendly = current_name
+            else:
+                current_friendly = resolved
+    elif current_name:
+        current_friendly = current_name
 
     if current_friendly and current_friendly not in sources:
         sources.append(current_friendly)

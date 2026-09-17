@@ -80,6 +80,10 @@ def test_build_source_list_empty_catalog() -> None:
     assert build_source_list([], None, None) == [DASHBOARD_SOURCE]
 
 
+def test_build_source_list_dashboard_aumid_without_name() -> None:
+    assert build_source_list([], DASHBOARD_AUMID, None) == [DASHBOARD_SOURCE]
+
+
 def test_build_source_list_truncates_to_max_sources(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

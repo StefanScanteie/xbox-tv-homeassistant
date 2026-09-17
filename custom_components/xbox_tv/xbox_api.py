@@ -35,6 +35,12 @@ class Title:
     aumid: str | None = None
 
 
+@dataclass(frozen=True)
+class SourceAction:
+    kind: str  # "dashboard" | "launch" | "signin" | "unknown"
+    launch_id: str | None = None
+
+
 def parse_installed_apps(payload: dict) -> list[Title]:
     titles: list[Title] = []
     for item in payload.get("result", []):
@@ -70,6 +76,25 @@ def launch_id_for_source(source: str, titles: list[Title]) -> str | None:
         if title.name == source:
             return title.launch_id
     return None
+
+
+def resolve_source_action(
+    source: str,
+    titles: list[Title],
+    microsoft_connected: bool,
+) -> SourceAction:
+    if is_dashboard_source(source):
+        return SourceAction("dashboard")
+
+    launch_id = launch_id_for_source(source, titles)
+    if launch_id is not None:
+        if microsoft_connected:
+            return SourceAction("launch", launch_id)
+        return SourceAction("signin")
+
+    if microsoft_connected:
+        return SourceAction("unknown")
+    return SourceAction("signin")
 
 
 def friendly_source(titles: list[Title], aumid: str | None) -> str:

@@ -62,3 +62,4 @@ def test_media_player_exposes_remote_and_media_controls() -> None:
     assert "async def async_media_next_track" in text
     assert "async def async_media_previous_track" in text
     assert "extra_state_attributes" in text
+    assert "async_set_updated_data" in text

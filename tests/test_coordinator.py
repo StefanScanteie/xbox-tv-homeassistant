@@ -138,6 +138,23 @@ async def test_fetch_state_aumid_failure_still_returns_state() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_state_aumid_failure_keeps_previous_source() -> None:
+    smartglass = FakeSmartGlass(True)
+    cache = [NETFLIX]
+    webapi = FakeWebApi(
+        aumid_error=RuntimeError("status unavailable"),
+        titles=[NETFLIX],
+    )
+
+    state = await async_fetch_state(
+        smartglass, webapi, cache, previous_source="Netflix"
+    )
+
+    assert state.aumid is None
+    assert state.source == "Netflix"
+
+
+@pytest.mark.asyncio
 async def test_fetch_state_dashboard_aumid_when_on() -> None:
     smartglass = FakeSmartGlass(True)
     webapi = FakeWebApi(aumid=DASHBOARD_AUMID, titles=[NETFLIX])

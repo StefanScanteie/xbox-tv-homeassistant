@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from dataclasses import replace
 
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
@@ -20,7 +21,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_LIVE_ID, DOMAIN, EVENT_HOMEKIT_TV_REMOTE_KEY_PRESSED, TURN_ON_WAIT
+from .const import (
+    CONF_LIVE_ID,
+    DASHBOARD_AUMID,
+    DOMAIN,
+    EVENT_HOMEKIT_TV_REMOTE_KEY_PRESSED,
+    TURN_ON_WAIT,
+)
 from .coordinator import XboxTvCoordinator
 from .xbox_api import extra_media_attributes, resolve_homekit_tv_remote_key, resolve_source_action
 
@@ -183,12 +190,29 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
 
         if action.kind == "dashboard":
             await webapi.async_go_home()
+            selected_aumid = DASHBOARD_AUMID
         elif action.kind == "launch":
             assert action.launch_id is not None
             await webapi.async_launch(action.launch_id)
+            selected_aumid = next(
+                (
+                    title.aumid
+                    for title in self.coordinator.data.titles
+                    if title.launch_id == action.launch_id
+                ),
+                None,
+            )
         else:
             raise HomeAssistantError(f"Unhandled source action {action.kind!r}")
 
+        current = self.coordinator.data
+        self.coordinator.async_set_updated_data(
+            replace(
+                current,
+                source=source,
+                aumid=selected_aumid or current.aumid,
+            )
+        )
         await self.coordinator.async_request_refresh()
 
     async def async_media_play(self) -> None:

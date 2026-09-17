@@ -59,6 +59,7 @@ async def async_fetch_state(
     webapi: XboxWebApiClient | None,
     titles_cache: list[Title],
     source_filters: SourceFilters | None = None,
+    previous_source: str | None = None,
 ) -> XboxTvState:
     powered_on = await smartglass.async_get_powered_on()
     aumid: str | None = None
@@ -86,6 +87,8 @@ async def async_fetch_state(
     )
     if powered_on and aumid:
         source = friendly_source(titles, aumid)
+    elif powered_on and previous_source:
+        source = previous_source
     else:
         source = DASHBOARD_SOURCE
 
@@ -198,6 +201,7 @@ if HAS_HA:
                 webapi_for_fetch,
                 self._titles_cache,
                 source_filters=self._source_filters(),
+                previous_source=self.data.source if self.data is not None else None,
             )
 
             if (

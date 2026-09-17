@@ -18,7 +18,6 @@ TURN_ON_WAIT = 30
 LAUNCH_WAIT = 30
 
 DASHBOARD_SOURCE = "Dashboard"
-DASHBOARD_PRODUCT_ID = "Home"
 DASHBOARD_AUMID = "Xbox.Dashboard_8wekyb3d8bbwe!Xbox.Dashboard.Application"
 MAX_SOURCES = 100
 PLATFORMS = ("media_player", "binary_sensor")

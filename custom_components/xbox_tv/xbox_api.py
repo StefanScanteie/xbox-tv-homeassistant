@@ -547,7 +547,7 @@ class XboxWebApiClient:
         await self._send_command("Power", "TurnOff")
 
     async def async_go_home(self) -> None:
-        await self.async_launch(DASHBOARD_AUMID)
+        await self._send_command("Shell", "GoHome", [{}])
 
     async def async_go_back(self) -> None:
         await self._send_command("Shell", "GoBack")

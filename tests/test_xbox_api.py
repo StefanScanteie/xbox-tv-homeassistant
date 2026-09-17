@@ -419,8 +419,9 @@ async def test_async_go_home_command_body() -> None:
     assert len(commands) == 1
     body = commands[0]
     assert body["type"] == "Shell"
-    assert body["command"] == "ActivateApplicationWithOneStoreProductId"
-    assert body["parameters"] == [{"oneStoreProductId": DASHBOARD_AUMID}]
+    assert body["command"] == "GoHome"
+    assert body["parameters"] == [{}]
+    assert "oneStoreProductId" not in str(body["parameters"])
 
 
 def test_parse_installed_apps_maps_content_type_and_is_game() -> None:
@@ -671,9 +672,9 @@ async def test_async_execute_remote_action_dispatches() -> None:
     assert [(body["type"], body["command"]) for body in commands] == [
         ("Shell", "InjectKey"),
         ("Shell", "GoBack"),
-        ("Shell", "ActivateApplicationWithOneStoreProductId"),
+        ("Shell", "GoHome"),
         ("Media", "Next"),
         ("Media", "Previous"),
     ]
-    assert commands[2]["parameters"] == [{"oneStoreProductId": DASHBOARD_AUMID}]
+    assert commands[2]["parameters"] == [{}]
     assert commands[0]["parameters"] == [{"keyType": "A"}]

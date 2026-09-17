@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import pytest
 
 from xbox_tv.const import DASHBOARD_AUMID, DASHBOARD_SOURCE, MAX_SOURCES
 from xbox_tv.xbox_api import (
     Title,
+    XboxWebApiClient,
     build_source_list,
     extract_oauth_code,
     friendly_source,
@@ -15,6 +17,81 @@ from xbox_tv.xbox_api import (
     parse_active_aumid,
     parse_installed_apps,
 )
+
+
+class FakeResponse:
+    def __init__(self, status: int, json_data: dict | list | None = None) -> None:
+        self.status = status
+        self._json = json_data if json_data is not None else {}
+
+    async def json(self) -> dict | list:
+        return self._json
+
+    async def __aenter__(self) -> FakeResponse:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+    def raise_for_status(self) -> None:
+        if self.status >= 400:
+            raise RuntimeError(self.status)
+
+
+class FakeSession:
+    def __init__(self, mapping: dict[tuple[str, str], FakeResponse]) -> None:
+        self.mapping = mapping
+        self.calls: list[tuple[str, str, dict]] = []
+
+    def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
+        self.calls.append((method, url, kwargs))
+        matches = [
+            (prefix, resp)
+            for (m, prefix), resp in self.mapping.items()
+            if method == m and url.startswith(prefix)
+        ]
+        if matches:
+            _, resp = max(matches, key=lambda item: len(item[0]))
+            return resp
+        return FakeResponse(404, {})
+
+    def get(self, url: str, **kwargs: object) -> FakeResponse:
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: object) -> FakeResponse:
+        return self.request("POST", url, **kwargs)
+
+
+LIVE_ID = "ABCDEF1234567890"
+
+
+def _valid_tokens() -> dict:
+    future = time.time() + 3600
+    return {
+        "access_token": "access",
+        "refresh_token": "refresh",
+        "expires_at": future,
+        "userhash": "userhash123",
+        "xsts_token": "xsts456",
+        "xsts_expires_at": future,
+    }
+
+
+def _auth_headers(auth: str) -> dict:
+    return {
+        "Authorization": auth,
+        "skillplatform": "RemoteManagement",
+        "x-xbl-contract-version": "4",
+        "Content-Type": "application/json",
+    }
+
+
+def _command_calls(session: FakeSession) -> list[dict]:
+    return [
+        kwargs["json"]
+        for method, url, kwargs in session.calls
+        if method == "POST" and url.startswith("https://xccs.xboxlive.com/commands")
+    ]
 
 APPS = {
     "result": [
@@ -143,3 +220,116 @@ def test_extract_oauth_code_error() -> None:
         extract_oauth_code("http://localhost/auth/callback?error=access_denied")
         is None
     )
+
+
+@pytest.mark.asyncio
+async def test_async_installed_titles() -> None:
+    session = FakeSession(
+        {
+            (
+                "GET",
+                f"https://xccs.xboxlive.com/lists/installedApps?deviceId={LIVE_ID}",
+            ): FakeResponse(200, APPS),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    titles = await client.async_installed_titles()
+
+    assert len(titles) == 2
+    assert titles[0].name == "Netflix"
+    assert len(session.calls) == 1
+    method, url, kwargs = session.calls[0]
+    assert method == "GET"
+    assert f"deviceId={LIVE_ID}" in url
+    assert kwargs["headers"] == _auth_headers("XBL3.0 x=userhash123;xsts456")
+
+
+@pytest.mark.asyncio
+async def test_async_active_aumid_from_console() -> None:
+    payload = {"status": {"activeTitles": [{"aum": "Netflix.App"}]}}
+    session = FakeSession(
+        {
+            ("GET", f"https://xccs.xboxlive.com/consoles/{LIVE_ID}"): FakeResponse(
+                200, payload
+            ),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    assert await client.async_active_aumid() == "Netflix.App"
+    assert len(session.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_async_active_aumid_falls_back_to_status() -> None:
+    payload = {"activeTitles": [{"aumid": "Halo.Infinite"}]}
+    session = FakeSession(
+        {
+            ("GET", f"https://xccs.xboxlive.com/consoles/{LIVE_ID}"): FakeResponse(
+                404, {}
+            ),
+            (
+                "GET",
+                f"https://xccs.xboxlive.com/consoles/{LIVE_ID}/status",
+            ): FakeResponse(200, payload),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    assert await client.async_active_aumid() == "Halo.Infinite"
+    assert len(session.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_async_turn_off_command_body() -> None:
+    session = FakeSession(
+        {
+            ("POST", "https://xccs.xboxlive.com/commands"): FakeResponse(200, {}),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    await client.async_turn_off()
+
+    commands = _command_calls(session)
+    assert len(commands) == 1
+    body = commands[0]
+    assert body["type"] == "Power"
+    assert body["command"] == "TurnOff"
+    assert body["destination"] == "Xbox"
+    assert body["sourceId"] == "com.microsoft.smartglass"
+    assert body["linkedDeviceId"] == LIVE_ID
+    assert body["parameters"] == []
+
+
+@pytest.mark.asyncio
+async def test_async_launch_command_body() -> None:
+    session = FakeSession(
+        {
+            ("POST", "https://xccs.xboxlive.com/commands"): FakeResponse(200, {}),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    await client.async_launch("9WZDNCRFJ3TJ")
+
+    commands = _command_calls(session)
+    assert len(commands) == 1
+    body = commands[0]
+    assert body["type"] == "Shell"
+    assert body["command"] == "Activate"
+    assert body["parameters"] == [{"oneStoreProductId": "9WZDNCRFJ3TJ"}]
+
+
+@pytest.mark.asyncio
+async def test_async_go_home_command_body() -> None:
+    session = FakeSession(
+        {
+            ("POST", "https://xccs.xboxlive.com/commands"): FakeResponse(200, {}),
+        }
+    )
+    client = XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+    await client.async_go_home()
+
+    commands = _command_calls(session)
+    assert len(commands) == 1
+    body = commands[0]
+    assert body["type"] == "Shell"
+    assert body["command"] == "GoHome"
+    assert body["parameters"] == []

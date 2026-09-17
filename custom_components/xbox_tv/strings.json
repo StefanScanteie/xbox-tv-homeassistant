@@ -54,7 +54,7 @@
     "error": {
       "invalid_host": "Enter a valid IP address or hostname.",
       "invalid_live_id": "Enter a valid Xbox network device ID (8–32 hex characters).",
-      "invalid_code": "Paste the full localhost URL from the address bar after Allow (the page will fail to load). It must contain ?code=.",
+      "invalid_code": "Paste the full localhost URL from the address bar after Allow (the page will fail to load). It must contain ?code="
     },
     "abort": {
       "already_configured": "This Xbox is already configured.",

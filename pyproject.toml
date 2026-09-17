@@ -5,6 +5,10 @@ description = "Home Assistant Xbox TV custom integration"
 requires-python = ">=3.13"
 readme = "README.md"
 
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-asyncio>=0.24"]
+
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["custom_components"]

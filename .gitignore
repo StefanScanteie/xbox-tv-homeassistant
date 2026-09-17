@@ -1,5 +1,59 @@
+# Byte-compiled / optimized
 __pycache__/
-*.pyc
-.pytest_cache/
-.superpowers/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
 .venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+!.env.example
+
+# Secrets and local tokens (never commit Xbox/Microsoft credentials)
+*.pem
+*.key
+tokens.json
+secrets.yaml
+
+# Test / coverage / type checkers
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Logs
+*.log
+
+# Local agent / session scratch
+.superpowers/

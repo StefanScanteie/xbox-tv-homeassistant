@@ -54,7 +54,10 @@ Give the console a DHCP reservation or a static IP so the host you enter at setu
 
 **HACS (recommended)**
 
-1. HACS → Custom repositories → [this GitHub repo](https://github.com/StefanScanteie/xbox-tv-homeassistant) → Integration
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=StefanScanteie&repository=xbox-tv-homeassistant&category=integration)
+
+1. HACS → Custom repositories → [this GitHub repo](https://github.com/StefanScanteie/xbox-tv-homeassistant) → Integration  
+   Or tap the My Home Assistant badge above
 2. Download **Xbox TV**
 3. Restart Home Assistant
 

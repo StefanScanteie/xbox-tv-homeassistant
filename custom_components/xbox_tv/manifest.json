@@ -1,9 +1,10 @@
 {
   "domain": "xbox_tv",
   "name": "Xbox TV",
-  "codeowners": [],
+  "codeowners": ["@StefanScanteie"],
   "config_flow": true,
   "documentation": "https://github.com/StefanScanteie/xbox-tv-homeassistant",
+  "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/StefanScanteie/xbox-tv-homeassistant/issues",
   "requirements": [],

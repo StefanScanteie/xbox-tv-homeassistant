@@ -26,3 +26,4 @@ def test_readme_covers_setup_homekit_and_microsoft_account() -> None:
     assert "GoHome" in text
     assert "ActivateApplicationWithOneStoreProductId" in text
     assert "Something went wrong" in text
+    assert "hacs_repository" in text

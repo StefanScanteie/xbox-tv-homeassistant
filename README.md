@@ -1,5 +1,7 @@
 # Xbox TV
 
+<img src="custom_components/xbox_tv/brand/icon.png" width="72" height="72" alt="Xbox">
+
 Home Assistant custom integration that exposes an Xbox Series S or Series X as a Television media player for Apple Home automations.
 
 ## Console settings

@@ -14,6 +14,7 @@ from homeassistant.components.media_player import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
@@ -150,7 +151,7 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
         if self.coordinator.data is None:
-            return
+            raise HomeAssistantError("Xbox TV is not ready yet")
 
         action = resolve_source_action(
             source,
@@ -159,18 +160,7 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
         )
         webapi = self.coordinator.webapi
 
-        if action.kind == "dashboard":
-            if webapi is None:
-                _LOGGER.warning("Dashboard requires Microsoft sign-in")
-                return
-            await webapi.async_go_home()
-        elif action.kind == "launch":
-            assert action.launch_id is not None
-            if webapi is None:
-                _LOGGER.warning("Launch requires Microsoft sign-in")
-                return
-            await webapi.async_launch(action.launch_id)
-        elif action.kind == "signin":
+        if action.kind == "signin":
             async_create_issue(
                 self.hass,
                 DOMAIN,
@@ -179,10 +169,25 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
                 severity=IssueSeverity.WARNING,
                 translation_key="microsoft_sign_in",
             )
-            return
+            raise HomeAssistantError(
+                "Sign in with Microsoft to switch apps and games"
+            )
+        if action.kind == "unknown":
+            raise HomeAssistantError(f"Unknown Xbox source {source!r}")
+        if webapi is None:
+            raise HomeAssistantError("Microsoft sign-in is required to switch sources")
+
+        if not self.coordinator.data.powered_on:
+            await self.coordinator.smartglass.async_power_on()
+            await self._wait_for_power_on()
+
+        if action.kind == "dashboard":
+            await webapi.async_go_home()
+        elif action.kind == "launch":
+            assert action.launch_id is not None
+            await webapi.async_launch(action.launch_id)
         else:
-            _LOGGER.warning("Unknown source %r", source)
-            return
+            raise HomeAssistantError(f"Unhandled source action {action.kind!r}")
 
         await self.coordinator.async_request_refresh()
 

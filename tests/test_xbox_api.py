@@ -194,6 +194,7 @@ def test_build_source_list_truncates_to_max_sources(
 
 def test_launch_id_for_source(titles: list[Title]) -> None:
     assert launch_id_for_source("Netflix", titles) == "9WZDNCRFJ3TJ"
+    assert launch_id_for_source("netflix", titles) == "9WZDNCRFJ3TJ"
     assert launch_id_for_source(DASHBOARD_SOURCE, titles) is None
 
 
@@ -323,6 +324,7 @@ async def test_async_turn_off_command_body() -> None:
     assert body["destination"] == "Xbox"
     assert body["sourceId"] == "com.microsoft.smartglass"
     assert body["linkedDeviceId"] == LIVE_ID
+    assert body["linkedXboxId"] == LIVE_ID
     assert body["parameters"] == []
 
 
@@ -340,8 +342,10 @@ async def test_async_launch_command_body() -> None:
     assert len(commands) == 1
     body = commands[0]
     assert body["type"] == "Shell"
-    assert body["command"] == "Activate"
+    assert body["command"] == "ActivateApplicationWithOneStoreProductId"
     assert body["parameters"] == [{"oneStoreProductId": "9WZDNCRFJ3TJ"}]
+    assert body["linkedXboxId"] == LIVE_ID
+    assert body["linkedDeviceId"] == LIVE_ID
 
 
 @pytest.mark.asyncio

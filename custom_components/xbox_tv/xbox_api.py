@@ -119,14 +119,15 @@ def parse_active_aumid(status_payload: dict) -> str | None:
 
 
 def is_dashboard_source(source: str) -> bool:
-    return source == DASHBOARD_SOURCE
+    return source.casefold() == DASHBOARD_SOURCE.casefold()
 
 
 def launch_id_for_source(source: str, titles: list[Title]) -> str | None:
     if is_dashboard_source(source):
         return None
+    needle = source.casefold()
     for title in titles:
-        if title.name == source:
+        if title.name.casefold() == needle:
             return title.launch_id
     return None
 
@@ -521,6 +522,7 @@ class XboxWebApiClient:
             "sourceId": "com.microsoft.smartglass",
             "parameters": parameters or [],
             "linkedDeviceId": self._live_id,
+            "linkedXboxId": self._live_id,
         }
         async with self._session.post(
             XBOX_COMMANDS_URL,
@@ -577,7 +579,7 @@ class XboxWebApiClient:
     async def async_launch(self, launch_id: str) -> None:
         await self._send_command(
             "Shell",
-            "Activate",
+            "ActivateApplicationWithOneStoreProductId",
             [{"oneStoreProductId": launch_id}],
         )
 

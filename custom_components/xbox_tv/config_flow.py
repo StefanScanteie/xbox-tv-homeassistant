@@ -7,11 +7,15 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_CLIENT_ID,
+    CONF_FAVORITES,
+    CONF_HIDE_DLC,
+    CONF_HIDE_SYSTEM_APPS,
     CONF_LIVE_ID,
     CONF_TOKENS,
     DEFAULT_NAME,
@@ -73,6 +77,12 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow."""
+        return XboxTvOptionsFlow()
 
     async def async_step_auth_choice(
         self, user_input: str | None = None
@@ -215,3 +225,35 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
         return self.async_create_entry(title=self._name, data=data)
+
+
+class XboxTvOptionsFlow(OptionsFlow):
+    """Handle Xbox TV source list options."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage source filters and favorites."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        options = self.config_entry.options
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_HIDE_DLC,
+                        default=options.get(CONF_HIDE_DLC, True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_HIDE_SYSTEM_APPS,
+                        default=options.get(CONF_HIDE_SYSTEM_APPS, True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FAVORITES,
+                        default=options.get(CONF_FAVORITES, ""),
+                    ): str,
+                }
+            ),
+        )

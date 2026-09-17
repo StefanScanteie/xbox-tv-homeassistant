@@ -33,12 +33,52 @@ class Title:
     name: str
     launch_id: str
     aumid: str | None = None
+    content_type: str | None = None
+    is_game: bool | None = None
 
 
 @dataclass(frozen=True)
 class SourceAction:
     kind: str  # "dashboard" | "launch" | "signin" | "unknown"
     launch_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RemoteAction:
+    kind: str  # "button" | "back" | "home" | "next" | "previous"
+    value: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceFilters:
+    hide_dlc: bool = True
+    hide_system_apps: bool = True
+    favorites: tuple[str, ...] = ()
+
+
+DLC_CONTENT_TYPES = frozenset({"dlc", "durable"})
+SYSTEM_CONTENT_TYPES = frozenset({"system", "systemapp", "xboxsystem"})
+SYSTEM_APP_NAMES = frozenset(
+    {
+        "Microsoft Store",
+        "Xbox Accessory",
+        "Television",
+        "Settings",
+        "Xbox Guide",
+    }
+)
+HOMEKIT_TV_REMOTE_KEYS: dict[str, RemoteAction] = {
+    "arrow_up": RemoteAction(kind="button", value="Up"),
+    "arrow_down": RemoteAction(kind="button", value="Down"),
+    "arrow_left": RemoteAction(kind="button", value="Left"),
+    "arrow_right": RemoteAction(kind="button", value="Right"),
+    "select": RemoteAction(kind="button", value="A"),
+    "back": RemoteAction(kind="back"),
+    "exit": RemoteAction(kind="home"),
+    "information": RemoteAction(kind="button", value="Nexus"),
+    "next_track": RemoteAction(kind="next"),
+    "previous_track": RemoteAction(kind="previous"),
+}
 
 
 def parse_installed_apps(payload: dict) -> list[Title]:
@@ -51,7 +91,19 @@ def parse_installed_apps(payload: dict) -> list[Title]:
         if not launch_id:
             continue
         aumid = item.get("aum") or item.get("aumid")
-        titles.append(Title(name=name, launch_id=launch_id, aumid=aumid))
+        content_type = item.get("contentType") or item.get("content_type")
+        is_game = item.get("isGame")
+        if is_game is None:
+            is_game = item.get("is_game")
+        titles.append(
+            Title(
+                name=name,
+                launch_id=str(launch_id),
+                aumid=aumid,
+                content_type=content_type,
+                is_game=is_game,
+            )
+        )
     return titles
 
 
@@ -106,10 +158,86 @@ def friendly_source(titles: list[Title], aumid: str | None) -> str:
     return aumid
 
 
+def parse_favorites(value: str | list[str] | tuple[str, ...] | None) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        parts = value.split(",")
+    else:
+        parts = list(value)
+    return tuple(part.strip() for part in parts if str(part).strip())
+
+
+def resolve_homekit_tv_remote_key(key_name: str) -> RemoteAction | None:
+    return HOMEKIT_TV_REMOTE_KEYS.get(key_name)
+
+
+def _title_for_aumid(titles: list[Title], aumid: str | None) -> Title | None:
+    if not aumid:
+        return None
+    for title in titles:
+        if title.aumid == aumid:
+            return title
+    return None
+
+
+def is_in_game(
+    powered_on: bool,
+    aumid: str | None,
+    titles: list[Title],
+) -> bool:
+    if not powered_on or not aumid or aumid == DASHBOARD_AUMID:
+        return False
+    current = _title_for_aumid(titles, aumid)
+    if current is None:
+        return False
+    if current.is_game is True:
+        return True
+    return (current.content_type or "").casefold() == "game"
+
+
+def extra_media_attributes(
+    *,
+    powered_on: bool,
+    aumid: str | None,
+    titles: list[Title],
+) -> dict[str, Any]:
+    current = _title_for_aumid(titles, aumid)
+    return {
+        "app_id": aumid,
+        "content_type": current.content_type if current else None,
+        "in_game": is_in_game(powered_on, aumid, titles),
+    }
+
+
+def _content_type(title: Title) -> str:
+    return (title.content_type or "").casefold()
+
+
+def _is_hidden(title: Title, hide_dlc: bool, hide_system_apps: bool) -> bool:
+    content_type = _content_type(title)
+    if hide_dlc and content_type in DLC_CONTENT_TYPES:
+        return True
+    if hide_system_apps and (
+        content_type in SYSTEM_CONTENT_TYPES or title.name in SYSTEM_APP_NAMES
+    ):
+        return True
+    return False
+
+
+def _matches_favorite(title: Title, favorite: str) -> bool:
+    needle = favorite.casefold()
+    return title.name.casefold() == needle or title.launch_id.casefold() == needle
+
+
 def build_source_list(
     titles: list[Title],
     current_aumid: str | None,
     current_name: str | None,
+    *,
+    hide_dlc: bool = True,
+    hide_system_apps: bool = True,
+    favorites: tuple[str, ...] = (),
 ) -> list[str]:
     seen_launch_ids: set[str] = set()
     unique_titles: list[Title] = []
@@ -119,8 +247,27 @@ def build_source_list(
         seen_launch_ids.add(title.launch_id)
         unique_titles.append(title)
 
+    favorite_titles: list[Title] = []
+    seen_favorite_ids: set[str] = set()
+    for favorite in favorites:
+        for title in unique_titles:
+            if title.launch_id in seen_favorite_ids:
+                continue
+            if _matches_favorite(title, favorite):
+                favorite_titles.append(title)
+                seen_favorite_ids.add(title.launch_id)
+                break
+
+    ordered: list[Title] = list(favorite_titles)
+    for title in unique_titles:
+        if title.launch_id in seen_favorite_ids:
+            continue
+        if _is_hidden(title, hide_dlc, hide_system_apps):
+            continue
+        ordered.append(title)
+
     sources = [DASHBOARD_SOURCE]
-    sources.extend(title.name for title in unique_titles)
+    sources.extend(title.name for title in ordered)
 
     current_friendly: str | None = None
     if current_aumid:
@@ -148,10 +295,21 @@ def build_source_list(
     )
 
     truncated = [DASHBOARD_SOURCE]
-    if current_friendly and not is_dashboard_source(current_friendly):
-        truncated.append(current_friendly)
-
-    for title in unique_titles:
+    for title in favorite_titles:
+        if len(truncated) >= MAX_SOURCES:
+            break
+        if title.name not in truncated:
+            truncated.append(title.name)
+    if (
+        current_friendly
+        and not is_dashboard_source(current_friendly)
+        and current_friendly not in truncated
+    ):
+        if len(truncated) >= MAX_SOURCES:
+            truncated[-1] = current_friendly
+        else:
+            truncated.append(current_friendly)
+    for title in ordered:
         if len(truncated) >= MAX_SOURCES:
             break
         if title.name not in truncated:
@@ -362,9 +520,52 @@ class XboxWebApiClient:
     async def async_go_home(self) -> None:
         await self._send_command("Shell", "GoHome")
 
+    async def async_go_back(self) -> None:
+        await self._send_command("Shell", "GoBack")
+
+    async def async_press_button(self, key_type: str) -> None:
+        await self._send_command("Shell", "InjectKey", [{"keyType": key_type}])
+
+    async def async_play(self) -> None:
+        await self._send_command("Media", "Play")
+
+    async def async_pause(self) -> None:
+        await self._send_command("Media", "Pause")
+
+    async def async_next(self) -> None:
+        await self._send_command("Media", "Next")
+
+    async def async_previous(self) -> None:
+        await self._send_command("Media", "Previous")
+
+    async def async_execute_remote_action(self, action: RemoteAction) -> None:
+        kind = action.kind
+        if kind == "button":
+            if action.value is None:
+                raise ValueError("button action requires a key type")
+            await self.async_press_button(action.value)
+            return
+        if kind == "back":
+            await self.async_go_back()
+            return
+        if kind == "home":
+            await self.async_go_home()
+            return
+        if kind == "next":
+            await self.async_next()
+            return
+        if kind == "previous":
+            await self.async_previous()
+            return
+        _unhandled_remote_kind(kind)
+
     async def async_launch(self, launch_id: str) -> None:
         await self._send_command(
             "Shell",
             "Activate",
             [{"oneStoreProductId": launch_id}],
         )
+
+
+def _unhandled_remote_kind(kind: str) -> None:
+    raise ValueError(f"Unhandled remote action kind: {kind}")

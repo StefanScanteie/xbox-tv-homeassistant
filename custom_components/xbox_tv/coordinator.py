@@ -10,6 +10,9 @@ from typing import Any
 
 from .const import (
     CONF_CLIENT_ID,
+    CONF_FAVORITES,
+    CONF_HIDE_DLC,
+    CONF_HIDE_SYSTEM_APPS,
     CONF_LIVE_ID,
     CONF_TOKENS,
     DASHBOARD_SOURCE,
@@ -20,10 +23,12 @@ from .const import (
 )
 from .smartglass import SmartGlassClient
 from .xbox_api import (
+    SourceFilters,
     Title,
     XboxWebApiClient,
     build_source_list,
     friendly_source,
+    parse_favorites,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,11 +58,13 @@ async def async_fetch_state(
     smartglass: SmartGlassClient,
     webapi: XboxWebApiClient | None,
     titles_cache: list[Title],
+    source_filters: SourceFilters | None = None,
 ) -> XboxTvState:
     powered_on = await smartglass.async_get_powered_on()
     aumid: str | None = None
     titles = titles_cache
     microsoft_connected = webapi is not None
+    filters = source_filters or SourceFilters()
 
     if webapi is not None:
         try:
@@ -69,7 +76,14 @@ async def async_fetch_state(
         except Exception:
             titles = titles_cache
 
-    source_list = build_source_list(titles, aumid, None)
+    source_list = build_source_list(
+        titles,
+        aumid,
+        None,
+        hide_dlc=filters.hide_dlc,
+        hide_system_apps=filters.hide_system_apps,
+        favorites=filters.favorites,
+    )
     if powered_on and aumid:
         source = friendly_source(titles, aumid)
     else:
@@ -145,6 +159,14 @@ if HAS_HA:
             """Return the Xbox web API client."""
             return self._webapi
 
+        def _source_filters(self) -> SourceFilters:
+            options = self._entry.options
+            return SourceFilters(
+                hide_dlc=options.get(CONF_HIDE_DLC, True),
+                hide_system_apps=options.get(CONF_HIDE_SYSTEM_APPS, True),
+                favorites=parse_favorites(options.get(CONF_FAVORITES)),
+            )
+
         async def _async_update_data(self) -> XboxTvState:
             """Fetch the latest state."""
             tokens_before: dict[str, Any] | None = None
@@ -175,6 +197,7 @@ if HAS_HA:
                 self._smartglass,
                 webapi_for_fetch,
                 self._titles_cache,
+                source_filters=self._source_filters(),
             )
 
             if (

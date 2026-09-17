@@ -4,7 +4,7 @@ import pytest
 
 from xbox_tv.const import DASHBOARD_AUMID, DASHBOARD_SOURCE
 from xbox_tv.coordinator import XboxTvState, async_fetch_state
-from xbox_tv.xbox_api import Title
+from xbox_tv.xbox_api import SourceFilters, Title
 
 
 class FakeSmartGlass:
@@ -145,3 +145,50 @@ async def test_fetch_state_dashboard_aumid_when_on() -> None:
     state = await async_fetch_state(smartglass, webapi, [])
 
     assert state.source == DASHBOARD_SOURCE
+
+
+@pytest.mark.asyncio
+async def test_fetch_state_applies_source_filters() -> None:
+    halo = Title(
+        name="Halo Infinite",
+        launch_id="h",
+        aumid="Halo.Infinite",
+        content_type="Game",
+        is_game=True,
+    )
+    dlc = Title(
+        name="Season Pass",
+        launch_id="d",
+        aumid="Dlc.App",
+        content_type="Dlc",
+        is_game=False,
+    )
+    store = Title(name="Microsoft Store", launch_id="s", content_type="App")
+    smartglass = FakeSmartGlass(True)
+    webapi = FakeWebApi(aumid="Halo.Infinite", titles=[halo, dlc, store])
+
+    state = await async_fetch_state(
+        smartglass,
+        webapi,
+        [],
+        source_filters=SourceFilters(hide_dlc=True, hide_system_apps=True),
+    )
+
+    assert state.source_list == [DASHBOARD_SOURCE, "Halo Infinite"]
+    assert state.source == "Halo Infinite"
+
+
+@pytest.mark.asyncio
+async def test_fetch_state_pins_favorites() -> None:
+    smartglass = FakeSmartGlass(True)
+    webapi = FakeWebApi(aumid="Netflix.App", titles=[NETFLIX, HALO])
+
+    state = await async_fetch_state(
+        smartglass,
+        webapi,
+        [],
+        source_filters=SourceFilters(favorites=("Netflix",)),
+    )
+
+    assert state.source_list[:2] == [DASHBOARD_SOURCE, "Netflix"]
+    assert "Halo Infinite" in state.source_list

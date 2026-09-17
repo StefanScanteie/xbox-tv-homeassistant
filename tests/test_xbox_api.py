@@ -14,15 +14,20 @@ from xbox_tv.const import (
 from xbox_tv.xbox_api import (
     XBOX_USER_AUTH_URL,
     XBOX_XSTS_AUTH_URL,
+    RemoteAction,
     Title,
     XboxWebApiClient,
     build_source_list,
+    extra_media_attributes,
     extract_oauth_code,
     friendly_source,
     is_dashboard_source,
+    is_in_game,
     launch_id_for_source,
     parse_active_aumid,
+    parse_favorites,
     parse_installed_apps,
+    resolve_homekit_tv_remote_key,
 )
 
 
@@ -388,3 +393,258 @@ async def test_async_go_home_command_body() -> None:
     assert body["type"] == "Shell"
     assert body["command"] == "GoHome"
     assert body["parameters"] == []
+
+
+def test_parse_installed_apps_maps_content_type_and_is_game() -> None:
+    titles = parse_installed_apps(
+        {
+            "result": [
+                {
+                    "name": "Halo Infinite",
+                    "oneStoreProductId": "9PNJSS9MW5HV",
+                    "aumid": "Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+                    "contentType": "Game",
+                    "isGame": True,
+                },
+                {
+                    "name": "Season Pass",
+                    "oneStoreProductId": "9NTESTDLC",
+                    "aumid": "Microsoft.Dlc_8wekyb3d8bbwe!Dlc",
+                    "contentType": "Dlc",
+                    "isGame": False,
+                },
+            ]
+        }
+    )
+    assert titles[0].content_type == "Game"
+    assert titles[0].is_game is True
+    assert titles[1].content_type == "Dlc"
+    assert titles[1].is_game is False
+
+
+def test_build_source_list_hides_dlc_by_default() -> None:
+    titles = [
+        Title(name="Halo Infinite", launch_id="1", content_type="Game", is_game=True),
+        Title(name="Season Pass", launch_id="2", content_type="Dlc", is_game=False),
+        Title(name="Durable Extra", launch_id="3", content_type="Durable"),
+    ]
+    assert build_source_list(titles, None, None) == [
+        DASHBOARD_SOURCE,
+        "Halo Infinite",
+    ]
+
+
+def test_build_source_list_hides_system_apps_by_default() -> None:
+    titles = [
+        Title(name="Netflix", launch_id="1", content_type="App"),
+        Title(name="Microsoft Store", launch_id="2", content_type="App"),
+        Title(name="Settings", launch_id="3", content_type="SystemApp"),
+    ]
+    assert build_source_list(titles, None, None) == [DASHBOARD_SOURCE, "Netflix"]
+
+
+def test_build_source_list_can_keep_dlc_and_system_apps() -> None:
+    titles = [
+        Title(name="Season Pass", launch_id="2", content_type="Dlc"),
+        Title(name="Microsoft Store", launch_id="3", content_type="App"),
+    ]
+    assert build_source_list(
+        titles, None, None, hide_dlc=False, hide_system_apps=False
+    ) == [DASHBOARD_SOURCE, "Microsoft Store", "Season Pass"]
+
+
+def test_build_source_list_keeps_current_even_when_filtered() -> None:
+    titles = [
+        Title(
+            name="Season Pass",
+            launch_id="2",
+            aumid="aumid.dlc",
+            content_type="Dlc",
+        )
+    ]
+    sources = build_source_list(titles, "aumid.dlc", None)
+    assert sources == [DASHBOARD_SOURCE, "Season Pass"]
+
+
+def test_build_source_list_pins_favorites_after_dashboard() -> None:
+    titles = [
+        Title(name="Apple TV", launch_id="a"),
+        Title(name="Halo Infinite", launch_id="h"),
+        Title(name="Netflix", launch_id="n"),
+        Title(name="YouTube", launch_id="y"),
+    ]
+    sources = build_source_list(titles, None, None, favorites=("Netflix", "h"))
+    assert sources == [
+        DASHBOARD_SOURCE,
+        "Netflix",
+        "Halo Infinite",
+        "Apple TV",
+        "YouTube",
+    ]
+
+
+def test_build_source_list_favorites_override_filters() -> None:
+    titles = [
+        Title(name="Halo Infinite", launch_id="h", content_type="Game"),
+        Title(name="Season Pass", launch_id="d", content_type="Dlc"),
+    ]
+    sources = build_source_list(titles, None, None, favorites=("Season Pass",))
+    assert sources == [DASHBOARD_SOURCE, "Season Pass", "Halo Infinite"]
+
+
+def test_extra_media_attributes_exposes_aumid_and_content_type() -> None:
+    titles = [
+        Title(
+            name="Halo Infinite",
+            launch_id="9PNJSS9MW5HV",
+            aumid="Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+            content_type="Game",
+            is_game=True,
+        )
+    ]
+    assert extra_media_attributes(
+        powered_on=True,
+        aumid="Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+        titles=titles,
+    ) == {
+        "app_id": "Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+        "content_type": "Game",
+        "in_game": True,
+    }
+
+
+def test_is_in_game_false_on_dashboard() -> None:
+    assert (
+        is_in_game(
+            powered_on=True,
+            aumid=DASHBOARD_AUMID,
+            titles=[],
+        )
+        is False
+    )
+
+
+def test_is_in_game_false_when_off() -> None:
+    titles = [
+        Title(
+            name="Halo Infinite",
+            launch_id="1",
+            aumid="Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+            content_type="Game",
+            is_game=True,
+        )
+    ]
+    assert (
+        is_in_game(
+            powered_on=False,
+            aumid="Microsoft.HaloInfinite_8wekyb3d8bbwe!HaloInfinite",
+            titles=titles,
+        )
+        is False
+    )
+
+
+def test_resolve_homekit_tv_remote_keys() -> None:
+    assert resolve_homekit_tv_remote_key("arrow_up") == RemoteAction(
+        kind="button", value="Up"
+    )
+    assert resolve_homekit_tv_remote_key("arrow_down") == RemoteAction(
+        kind="button", value="Down"
+    )
+    assert resolve_homekit_tv_remote_key("arrow_left") == RemoteAction(
+        kind="button", value="Left"
+    )
+    assert resolve_homekit_tv_remote_key("arrow_right") == RemoteAction(
+        kind="button", value="Right"
+    )
+    assert resolve_homekit_tv_remote_key("select") == RemoteAction(
+        kind="button", value="A"
+    )
+    assert resolve_homekit_tv_remote_key("back") == RemoteAction(kind="back")
+    assert resolve_homekit_tv_remote_key("exit") == RemoteAction(kind="home")
+    assert resolve_homekit_tv_remote_key("information") == RemoteAction(
+        kind="button", value="Nexus"
+    )
+    assert resolve_homekit_tv_remote_key("next_track") == RemoteAction(kind="next")
+    assert resolve_homekit_tv_remote_key("previous_track") == RemoteAction(
+        kind="previous"
+    )
+    assert resolve_homekit_tv_remote_key("play_pause") is None
+    assert resolve_homekit_tv_remote_key("unknown") is None
+
+
+def test_parse_favorites_splits_comma_separated_names() -> None:
+    assert parse_favorites("Netflix, Halo Infinite") == ("Netflix", "Halo Infinite")
+    assert parse_favorites(["YouTube", "  Disney+ "]) == ("YouTube", "Disney+")
+    assert parse_favorites(None) == ()
+    assert parse_favorites("") == ()
+
+
+async def _command_client() -> tuple[FakeSession, XboxWebApiClient]:
+    session = FakeSession(
+        {
+            ("POST", "https://xccs.xboxlive.com/commands"): FakeResponse(200, {}),
+        }
+    )
+    return session, XboxWebApiClient(session, _valid_tokens(), LIVE_ID)
+
+
+@pytest.mark.asyncio
+async def test_async_play_pause_next_previous_command_bodies() -> None:
+    session, client = await _command_client()
+    await client.async_play()
+    await client.async_pause()
+    await client.async_next()
+    await client.async_previous()
+
+    commands = _command_calls(session)
+    assert [body["type"] for body in commands] == ["Media", "Media", "Media", "Media"]
+    assert [body["command"] for body in commands] == [
+        "Play",
+        "Pause",
+        "Next",
+        "Previous",
+    ]
+    assert all(body["parameters"] == [] for body in commands)
+
+
+@pytest.mark.asyncio
+async def test_async_go_back_command_body() -> None:
+    session, client = await _command_client()
+    await client.async_go_back()
+
+    body = _command_calls(session)[0]
+    assert body["type"] == "Shell"
+    assert body["command"] == "GoBack"
+    assert body["parameters"] == []
+
+
+@pytest.mark.asyncio
+async def test_async_press_button_command_body() -> None:
+    session, client = await _command_client()
+    await client.async_press_button("Up")
+
+    body = _command_calls(session)[0]
+    assert body["type"] == "Shell"
+    assert body["command"] == "InjectKey"
+    assert body["parameters"] == [{"keyType": "Up"}]
+
+
+@pytest.mark.asyncio
+async def test_async_execute_remote_action_dispatches() -> None:
+    session, client = await _command_client()
+    await client.async_execute_remote_action(RemoteAction(kind="button", value="A"))
+    await client.async_execute_remote_action(RemoteAction(kind="back"))
+    await client.async_execute_remote_action(RemoteAction(kind="home"))
+    await client.async_execute_remote_action(RemoteAction(kind="next"))
+    await client.async_execute_remote_action(RemoteAction(kind="previous"))
+
+    commands = _command_calls(session)
+    assert [(body["type"], body["command"]) for body in commands] == [
+        ("Shell", "InjectKey"),
+        ("Shell", "GoBack"),
+        ("Shell", "GoHome"),
+        ("Media", "Next"),
+        ("Media", "Previous"),
+    ]
+    assert commands[0]["parameters"] == [{"keyType": "A"}]

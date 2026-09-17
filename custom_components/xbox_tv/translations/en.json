@@ -61,7 +61,23 @@
       "reconfigure_successful": "Xbox TV was reconfigured successfully."
     },
     "create_entry": {
-      "default": "Xbox TV is ready.\n\n**Apple Home / HomeKit:** Do not add this media player to your existing HomeKit Bridge. Apple will not show a Television on a mixed bridge.\n\nAdd a **separate** HomeKit integration entry in **accessory** mode that includes **only** this Xbox media player, then pair it in Apple Home as a new Television accessory."
+      "default": "Xbox TV is ready.\n\n**Apple Home / HomeKit:** Do not add this media player to your existing HomeKit Bridge. Apple will not show a Television on a mixed bridge.\n\nAdd a **separate** HomeKit integration entry in **accessory** mode that includes **only** this Xbox media player, then pair it in Apple Home as a new Television accessory.\n\nThe Occupied sensor can stay on your existing HomeKit Bridge for lighting automations."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Xbox TV sources",
+        "description": "Hide DLC and system apps so Apple Home stays under 100 useful inputs. Favorites are listed after Dashboard.",
+        "data": {
+          "hide_dlc": "Hide DLC",
+          "hide_system_apps": "Hide system apps",
+          "favorites": "Favorites"
+        },
+        "data_description": {
+          "favorites": "Comma-separated source names or product IDs, shown after Dashboard"
+        }
+      }
     }
   },
   "issues": {

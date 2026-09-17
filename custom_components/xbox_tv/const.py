@@ -20,6 +20,12 @@ LAUNCH_WAIT = 30
 DASHBOARD_SOURCE = "Dashboard"
 DASHBOARD_AUMID = "Xbox.Dashboard_8wekyb3d8bbwe!Xbox.Dashboard.Application"
 MAX_SOURCES = 100
+PLATFORMS = ("media_player", "binary_sensor")
+
+CONF_HIDE_DLC = "hide_dlc"
+CONF_HIDE_SYSTEM_APPS = "hide_system_apps"
+CONF_FAVORITES = "favorites"
+EVENT_HOMEKIT_TV_REMOTE_KEY_PRESSED = "homekit_tv_remote_key_pressed"
 
 OAUTH_CLIENT_ID = "388ea51c-0b25-4029-aae2-17df49d23905"
 OAUTH_REDIRECT_URI = "http://localhost/auth/callback"

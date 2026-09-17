@@ -1,0 +1,7 @@
+{
+  "name": "Xbox TV",
+  "content_in_root": false,
+  "filename": "xbox_tv",
+  "homeassistant": "2025.1.0",
+  "render_readme": true
+}

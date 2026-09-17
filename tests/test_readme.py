@@ -23,3 +23,6 @@ def test_readme_covers_setup_homekit_and_microsoft_account() -> None:
     assert "no known account-ban risk" in text
     assert "official `xbox` integration" in text
     assert "388ea51c-0b25-4029-aae2-17df49d23905" in text
+    assert "GoHome" in text
+    assert "ActivateApplicationWithOneStoreProductId" in text
+    assert "Something went wrong" in text

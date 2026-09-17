@@ -54,11 +54,12 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
             elif not is_valid_live_id(user_input[CONF_LIVE_ID]):
                 errors["base"] = "invalid_live_id"
             else:
-                await self.async_set_unique_id(user_input[CONF_LIVE_ID].upper())
+                live_id = user_input[CONF_LIVE_ID].strip().upper()
+                await self.async_set_unique_id(live_id)
                 self._abort_if_unique_id_configured()
                 self._name = user_input["name"]
                 self._host = user_input["host"]
-                self._live_id = user_input[CONF_LIVE_ID]
+                self._live_id = live_id
                 return await self.async_step_auth_choice()
 
         return self.async_show_form(
@@ -143,11 +144,15 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
         elif not is_valid_live_id(user_input[CONF_LIVE_ID]):
             errors["base"] = "invalid_live_id"
         else:
+            live_id = user_input[CONF_LIVE_ID].strip().upper()
+            if live_id != reconfigure_entry.unique_id:
+                await self.async_set_unique_id(live_id)
+                self._abort_if_unique_id_configured()
             self._reconfigure_entry = reconfigure_entry
             self._reconfigure = True
             self._name = user_input["name"]
             self._host = user_input["host"]
-            self._live_id = user_input[CONF_LIVE_ID]
+            self._live_id = live_id
             return await self.async_step_reconfigure_auth()
 
         return self.async_show_form(
@@ -196,8 +201,13 @@ class XboxTvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if self._reconfigure:
             assert self._reconfigure_entry is not None
+            entry = self._reconfigure_entry
+            if self.unique_id is not None and self.unique_id != entry.unique_id:
+                self.hass.config_entries.async_update_entry(
+                    entry, unique_id=self.unique_id
+                )
             return self.async_update_reload_and_abort(
-                self._reconfigure_entry,
+                entry,
                 title=self._name,
                 data=data,
             )

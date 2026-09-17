@@ -66,7 +66,7 @@
   "issues": {
     "microsoft_sign_in": {
       "title": "Sign in with Microsoft",
-      "description": "Sign in with Microsoft to switch apps and games. Power on/off still works without sign-in."
+      "description": "Sign in with Microsoft to power off the console and switch apps and games. Power on and on/off presence still work without sign-in."
     }
   }
 }

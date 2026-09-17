@@ -7,6 +7,7 @@ import pytest
 
 from xbox_tv.const import (
     DASHBOARD_AUMID,
+    DASHBOARD_PRODUCT_ID,
     DASHBOARD_SOURCE,
     MAX_SOURCES,
     OAUTH_TOKEN_URL,
@@ -410,8 +411,8 @@ async def test_async_go_home_command_body() -> None:
     assert len(commands) == 1
     body = commands[0]
     assert body["type"] == "Shell"
-    assert body["command"] == "GoHome"
-    assert body["parameters"] == []
+    assert body["command"] == "ActivateApplicationWithOneStoreProductId"
+    assert body["parameters"] == [{"oneStoreProductId": DASHBOARD_PRODUCT_ID}]
 
 
 def test_parse_installed_apps_maps_content_type_and_is_game() -> None:
@@ -662,8 +663,9 @@ async def test_async_execute_remote_action_dispatches() -> None:
     assert [(body["type"], body["command"]) for body in commands] == [
         ("Shell", "InjectKey"),
         ("Shell", "GoBack"),
-        ("Shell", "GoHome"),
+        ("Shell", "ActivateApplicationWithOneStoreProductId"),
         ("Media", "Next"),
         ("Media", "Previous"),
     ]
+    assert commands[2]["parameters"] == [{"oneStoreProductId": DASHBOARD_PRODUCT_ID}]
     assert commands[0]["parameters"] == [{"keyType": "A"}]

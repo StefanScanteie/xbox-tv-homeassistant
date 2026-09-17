@@ -20,7 +20,7 @@ Home Assistant’s built-in [Xbox](https://www.home-assistant.io/integrations/xb
 This integration uses the **same Microsoft / Xbox Network sign-in and remote-management APIs** that the Xbox app and Home Assistant’s official `xbox` integration already use. It is not a scrape, a game cheat, or a third-party “login bot.”
 
 - You sign in at Microsoft’s real login page (`login.live.com`) with your own account.
-- Cloud commands go to Xbox Network remote management (`xccs.xboxlive.com`) as `sourceId` `com.microsoft.smartglass` — TurnOff, GoHome, Activate (launch a title), InjectKey, Play/Pause/Next/Previous. Those are the same command types the Xbox mobile app and [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) / Home Assistant `xbox` use for console control.
+- Cloud commands go to Xbox Network remote management (`xccs.xboxlive.com`) as `sourceId` `com.microsoft.smartglass` — TurnOff, ActivateApplicationWithOneStoreProductId (launch a title or return to Dashboard), InjectKey, Play/Pause/Next/Previous. Those are the same command types the Xbox mobile app and [xbox-webapi](https://github.com/OpenXbox/xbox-webapi-python) / Home Assistant `xbox` use for console control.
 - Local power-on is the SmartGlass UDP wake packet the Xbox app sends when Instant-on and “allow connections from any device” are enabled.
 - The default OAuth client is the public OpenXbox client (`388ea51c-0b25-4029-aae2-17df49d23905`) with scopes `XboxLive.signin` and `XboxLive.offline_access`. Community Xbox tools have used this client for years. Home Assistant core `xbox` signs in through Home Assistant Cloud instead; this integration cannot use that redirect, so it uses the OpenXbox paste-code flow. Both are normal Microsoft OAuth grants on **your** account.
 - Tokens stay in the Home Assistant config entry. They are not written to git, not logged, and not shared with the official `xbox` integration. Running both means two separate sign-ins to the same Microsoft account, which is expected.
@@ -173,8 +173,8 @@ Leave these to core `xbox` or skip them:
 | Stays off / will not wake | Instant-on, “allow connections from any device”, correct IP, Xbox network device ID (not serial) |
 | Wakes but will not power off or change apps | Complete Microsoft sign-in; use Reconfigure if tokens expired |
 | Browser says it cannot connect to localhost after Allow | Expected. Copy that localhost `?code=` URL into the still-open Home Assistant form |
-| Changing source fails with `trailing comma` in `en.json` | HACS is still on 0.2.0. Update Xbox TV to **0.2.2**, restart, then try again |
-| Changing source does nothing on the Xbox | Update to 0.2.2 (launch command was wrong). Console must be signed in; if it is off, the integration wakes it first |
+| Changing source fails with `trailing comma` in `en.json` | HACS is still on 0.2.0. Update Xbox TV to **0.2.3**, restart, then try again |
+| Changing source does nothing on the Xbox | Update to **0.2.3**. Apps use the store product launch command; Dashboard uses the same command with product id `Dashboard`. Console must be signed in; if it is off, the integration wakes it first |
 | Source list is only Dashboard | Sign-in skipped or catalog call failed; sign in again |
 | Apple Home shows switches, not a TV | The media player is on the mixed HomeKit Bridge; use a dedicated accessory |
 | Control Center remote does nothing | Sign-in required; reload/re-add the HomeKit accessory after updating |

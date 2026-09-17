@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from .const import (
     DASHBOARD_AUMID,
+    DASHBOARD_PRODUCT_ID,
     DASHBOARD_SOURCE,
     MAX_SOURCES,
     OAUTH_AUTHORIZE_URL,
@@ -535,7 +536,7 @@ class XboxWebApiClient:
         await self._send_command("Power", "TurnOff")
 
     async def async_go_home(self) -> None:
-        await self._send_command("Shell", "GoHome")
+        await self.async_launch(DASHBOARD_PRODUCT_ID)
 
     async def async_go_back(self) -> None:
         await self._send_command("Shell", "GoBack")

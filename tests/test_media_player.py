@@ -53,7 +53,7 @@ def test_media_player_exposes_remote_and_media_controls() -> None:
     assert "EVENT_HOMEKIT_TV_REMOTE_KEY_PRESSED" in text
     assert "MediaPlayerEntityFeature.PLAY" in text
     assert "MediaPlayerEntityFeature.PAUSE" in text
-    assert "MediaPlayerEntityFeature.PLAY_PAUSE" in text
+    assert "MediaPlayerEntityFeature.PLAY_PAUSE" not in text
     assert "MediaPlayerEntityFeature.NEXT_TRACK" in text
     assert "MediaPlayerEntityFeature.PREVIOUS_TRACK" in text
     assert "async def async_media_play" in text

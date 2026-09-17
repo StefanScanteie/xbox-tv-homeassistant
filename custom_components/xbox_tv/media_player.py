@@ -46,7 +46,6 @@ class XboxTvMediaPlayer(CoordinatorEntity[XboxTvCoordinator], MediaPlayerEntity)
         | MediaPlayerEntityFeature.SELECT_SOURCE
         | MediaPlayerEntityFeature.PLAY
         | MediaPlayerEntityFeature.PAUSE
-        | MediaPlayerEntityFeature.PLAY_PAUSE
         | MediaPlayerEntityFeature.NEXT_TRACK
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
     )

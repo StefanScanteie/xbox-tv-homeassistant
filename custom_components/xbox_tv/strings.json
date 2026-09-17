@@ -25,12 +25,12 @@
       },
       "oauth": {
         "title": "Microsoft sign-in",
-        "description": "Open this URL in a browser, sign in, and paste the full redirect URL below:\n\n{authorize_url}",
+        "description": "The browser error after Allow is expected. Microsoft redirects to http://localhost/auth/callback, and nothing is listening there.\n\n1. Open this URL, sign in, and click Allow:\n\n{authorize_url}\n\n2. Safari or Chrome will say it cannot connect to localhost. Copy the **full** address from the address bar (it starts with http://localhost/auth/callback?code=). You can also copy the localhost URL from the error page text.\n\n3. Paste that URL below and submit. Do not close this Home Assistant dialog first.",
         "data": {
           "redirect_url": "Redirect URL"
         },
         "data_description": {
-          "redirect_url": "The full URL from your browser after signing in (starts with http://localhost/auth/callback)"
+          "redirect_url": "The localhost URL after Allow, including ?code=… The “can’t connect to localhost” page is success, not failure."
         }
       },
       "reconfigure": {
@@ -54,7 +54,7 @@
     "error": {
       "invalid_host": "Enter a valid IP address or hostname.",
       "invalid_live_id": "Enter a valid Xbox network device ID (8–32 hex characters).",
-      "invalid_code": "Could not read an authorization code from that URL. Paste the full redirect URL."
+      "invalid_code": "Paste the full localhost URL from the address bar after Allow (the page will fail to load). It must contain ?code=.",
     },
     "abort": {
       "already_configured": "This Xbox is already configured.",

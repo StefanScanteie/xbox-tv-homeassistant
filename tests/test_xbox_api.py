@@ -234,6 +234,21 @@ def test_extract_oauth_code_error() -> None:
     )
 
 
+def test_extract_oauth_code_accepts_safari_address_without_scheme() -> None:
+    assert (
+        extract_oauth_code("localhost/auth/callback?code=M.C516_BAY.2.U.MsaArtifacts")
+        == "M.C516_BAY.2.U.MsaArtifacts"
+    )
+
+
+def test_extract_oauth_code_from_safari_error_text() -> None:
+    blob = (
+        'Safari can’t open the page “localhost/auth/callback?code=M.C516_BAY.2.U.MsaArtifacts.abc%24” '
+        "because Safari can’t connect to the server “localhost”."
+    )
+    assert extract_oauth_code(blob) == "M.C516_BAY.2.U.MsaArtifacts.abc$"
+
+
 @pytest.mark.asyncio
 async def test_async_installed_titles() -> None:
     session = FakeSession(

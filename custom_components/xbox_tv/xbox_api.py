@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 from uuid import uuid4
 
 from .const import (
@@ -331,13 +332,27 @@ def build_authorize_url(client_id: str, redirect_uri: str) -> str:
 
 
 def extract_oauth_code(redirect_url: str) -> str | None:
-    parsed = urlparse(redirect_url)
+    text = redirect_url.strip()
+    if not text:
+        return None
+    if re.search(r"(?:^|[?&])error=", text):
+        return None
+
+    match = re.search(r"[?&]code=([^&\s\"'<>“”]+)", text)
+    if match:
+        return unquote(match.group(1).rstrip(".,;"))
+
+    candidate = text
+    host_path = candidate.split("?", 1)[0]
+    if "://" not in host_path and host_path.lower().startswith("localhost"):
+        candidate = f"http://{candidate}"
+    parsed = urlparse(candidate)
     params = parse_qs(parsed.query)
-    if "error" in params:
+    if params.get("error"):
         return None
     codes = params.get("code")
     if codes:
-        return codes[0]
+        return unquote(codes[0])
     return None
 
 

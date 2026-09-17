@@ -75,9 +75,12 @@ Copy `custom_components/xbox_tv` into your Home Assistant `custom_components` fo
 **Microsoft sign-in**
 
 1. Open the login URL shown in the form
-2. Sign in with the Microsoft account that owns the console
-3. The browser lands on a `http://localhost/auth/callback?code=...` URL that will not load a page. That is expected.
-4. Copy the **full** URL from the address bar and paste it back into the form
+2. Sign in with the Microsoft account that owns the console and click **Allow**
+3. The browser will try to open `http://localhost/auth/callback?code=...` and show **Safari Can’t Connect to the Server** (or Chrome’s equivalent). That is success. Microsoft sent the code to localhost, and nothing in Home Assistant is supposed to answer that request.
+4. Copy the **full** URL from the address bar (Safari may hide `http://`; `localhost/auth/callback?code=...` is enough). You can also copy the localhost URL from the error page text.
+5. Paste it into **Redirect URL** in the Home Assistant dialog that is still open, then submit. Do not close that dialog first.
+
+If the code is rejected, sign in again and paste immediately — Microsoft authorization codes expire quickly.
 
 You can reconfigure host, live ID, and tokens later from the integration’s menu. Options (source filters) are under Configure on the integration entry.
 
@@ -169,6 +172,7 @@ Leave these to core `xbox` or skip them:
 | --- | --- |
 | Stays off / will not wake | Instant-on, “allow connections from any device”, correct IP, Xbox network device ID (not serial) |
 | Wakes but will not power off or change apps | Complete Microsoft sign-in; use Reconfigure if tokens expired |
+| Browser says it cannot connect to localhost after Allow | Expected. Copy that localhost `?code=` URL into the still-open Home Assistant form |
 | Source list is only Dashboard | Sign-in skipped or catalog call failed; sign in again |
 | Apple Home shows switches, not a TV | The media player is on the mixed HomeKit Bridge; use a dedicated accessory |
 | Control Center remote does nothing | Sign-in required; reload/re-add the HomeKit accessory after updating |

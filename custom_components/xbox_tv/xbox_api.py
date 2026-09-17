@@ -110,7 +110,19 @@ def parse_installed_apps(payload: dict) -> list[Title]:
 
 
 def parse_active_aumid(status_payload: dict) -> str | None:
-    active_titles = status_payload.get("status", {}).get("activeTitles")
+    for key in ("focusAppAumid", "focus_app_aumid"):
+        value = status_payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    nested = status_payload.get("status")
+    if isinstance(nested, dict):
+        for key in ("focusAppAumid", "focus_app_aumid"):
+            value = nested.get(key)
+            if isinstance(value, str) and value.strip():
+                return value
+        active_titles = nested.get("activeTitles")
+    else:
+        active_titles = None
     if not active_titles:
         active_titles = status_payload.get("activeTitles")
     if not active_titles:
@@ -536,6 +548,7 @@ class XboxWebApiClient:
         await self._send_command("Power", "TurnOff")
 
     async def async_go_home(self) -> None:
+        await self._send_command("Shell", "GoHome", [{}])
         await self.async_launch(DASHBOARD_PRODUCT_ID)
 
     async def async_go_back(self) -> None:

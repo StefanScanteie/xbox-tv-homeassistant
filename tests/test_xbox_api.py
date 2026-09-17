@@ -223,6 +223,15 @@ def test_parse_active_aumid_falls_back_to_top_level() -> None:
     assert parse_active_aumid(payload) == "Halo.Infinite"
 
 
+def test_parse_active_aumid_uses_focus_app_aumid() -> None:
+    payload = {
+        "focusAppAumid": "Netflix.App",
+        "powerState": "On",
+        "status": {"errorCode": "OK"},
+    }
+    assert parse_active_aumid(payload) == "Netflix.App"
+
+
 def test_extract_oauth_code_success() -> None:
     assert (
         extract_oauth_code("http://localhost/auth/callback?code=ABC&lc=1033") == "ABC"
@@ -408,11 +417,14 @@ async def test_async_go_home_command_body() -> None:
     await client.async_go_home()
 
     commands = _command_calls(session)
-    assert len(commands) == 1
-    body = commands[0]
-    assert body["type"] == "Shell"
-    assert body["command"] == "ActivateApplicationWithOneStoreProductId"
-    assert body["parameters"] == [{"oneStoreProductId": DASHBOARD_PRODUCT_ID}]
+    assert len(commands) == 2
+    assert commands[0]["type"] == "Shell"
+    assert commands[0]["command"] == "GoHome"
+    assert commands[0]["parameters"] == [{}]
+    assert commands[1]["type"] == "Shell"
+    assert commands[1]["command"] == "ActivateApplicationWithOneStoreProductId"
+    assert commands[1]["parameters"] == [{"oneStoreProductId": "Home"}]
+    assert DASHBOARD_PRODUCT_ID == "Home"
 
 
 def test_parse_installed_apps_maps_content_type_and_is_game() -> None:
@@ -663,9 +675,11 @@ async def test_async_execute_remote_action_dispatches() -> None:
     assert [(body["type"], body["command"]) for body in commands] == [
         ("Shell", "InjectKey"),
         ("Shell", "GoBack"),
+        ("Shell", "GoHome"),
         ("Shell", "ActivateApplicationWithOneStoreProductId"),
         ("Media", "Next"),
         ("Media", "Previous"),
     ]
-    assert commands[2]["parameters"] == [{"oneStoreProductId": DASHBOARD_PRODUCT_ID}]
+    assert commands[2]["parameters"] == [{}]
+    assert commands[3]["parameters"] == [{"oneStoreProductId": "Home"}]
     assert commands[0]["parameters"] == [{"keyType": "A"}]

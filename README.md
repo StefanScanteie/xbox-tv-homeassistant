@@ -173,8 +173,8 @@ Leave these to core `xbox` or skip them:
 | Stays off / will not wake | Instant-on, “allow connections from any device”, correct IP, Xbox network device ID (not serial) |
 | Wakes but will not power off or change apps | Complete Microsoft sign-in; use Reconfigure if tokens expired |
 | Browser says it cannot connect to localhost after Allow | Expected. Copy that localhost `?code=` URL into the still-open Home Assistant form |
-| Changing source fails with `trailing comma` in `en.json` | HACS is still on 0.2.0. Update Xbox TV to **0.2.3**, restart, then try again |
-| Changing source does nothing on the Xbox | Update to **0.2.3**. Apps use the store product launch command; Dashboard uses the same command with product id `Dashboard`. Console must be signed in; if it is off, the integration wakes it first |
+| Changing source fails with `trailing comma` in `en.json` | HACS is still on 0.2.0. Update Xbox TV to **0.2.4**, restart, then try again |
+| Changing source does nothing on the Xbox | Update to **0.2.4**. Apps use the store product launch command; Dashboard sends `GoHome` then launches product id `Home`. Console must be signed in; if it is off, the integration wakes it first |
 | Source list is only Dashboard | Sign-in skipped or catalog call failed; sign in again |
 | Apple Home shows switches, not a TV | The media player is on the mixed HomeKit Bridge; use a dedicated accessory |
 | Control Center remote does nothing | Sign-in required; reload/re-add the HomeKit accessory after updating |

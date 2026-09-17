@@ -39,6 +39,21 @@ async def test_get_powered_on_false_on_timeout() -> None:
     assert await client.async_get_powered_on() is False
 
 
+class FakeUdpOSError(FakeUdp):
+    async def send_recv(
+        self, data: bytes, host: str, port: int, timeout: float
+    ) -> bytes | None:
+        raise OSError("Network unreachable")
+
+
+@pytest.mark.asyncio
+async def test_get_powered_on_false_on_transport_oserror() -> None:
+    client = SmartGlassClient(
+        "192.168.1.50", "FD00112233445566", udp=FakeUdpOSError()
+    )
+    assert await client.async_get_powered_on() is False
+
+
 @pytest.mark.asyncio
 async def test_power_on_sends_to_host_broadcast_and_multicast() -> None:
     udp = FakeUdp()

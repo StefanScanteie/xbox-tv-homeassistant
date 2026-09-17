@@ -107,11 +107,17 @@ class AsyncioUdpTransport:
         loop = asyncio.get_running_loop()
         future: asyncio.Future[bytes] = loop.create_future()
         protocol._pending = future
-        protocol.transport.sendto(data, (host, port))
         try:
-            return await asyncio.wait_for(future, timeout)
-        except TimeoutError:
-            return None
+            try:
+                protocol.transport.sendto(data, (host, port))
+            except OSError:
+                return None
+            try:
+                return await asyncio.wait_for(future, timeout)
+            except (TimeoutError, OSError):
+                return None
+            except Exception:
+                return None
         finally:
             protocol._pending = None
 
@@ -133,12 +139,15 @@ class SmartGlassClient:
         self._udp = udp if udp is not None else AsyncioUdpTransport()
 
     async def async_get_powered_on(self) -> bool:
-        response = await self._udp.send_recv(
-            encode_discovery_request(),
-            self._host,
-            self._port,
-            self._timeout,
-        )
+        try:
+            response = await self._udp.send_recv(
+                encode_discovery_request(),
+                self._host,
+                self._port,
+                self._timeout,
+            )
+        except OSError:
+            return False
         return response is not None and is_discovery_response(response)
 
     async def async_power_on(self) -> None:
